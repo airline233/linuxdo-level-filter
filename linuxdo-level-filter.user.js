@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         linux.do 等级贴过滤
 // @namespace    https://github.com/airline233/linuxdo-level-filter
-// @version      1.2.0
+// @version      1.2.1
 // @description  按用户等级(Lv1/Lv2/Lv3)统一过滤帖子列表,一处开关搞定所有受限子版块
 // @author       airline233
 // @match        https://linux.do/*
@@ -100,11 +100,14 @@
       .filter(Boolean);
   }
 
+  // 全选 / 全不选 都视为不启用等级过滤;只有部分勾选时才生效
+  function isLevelFilterActive() {
+    const n = LEVELS.reduce((c, lv) => c + (store.levels[lv] ? 1 : 0), 0);
+    return n > 0 && n < LEVELS.length;
+  }
+
   function isFilterActive() {
-    return (
-      LEVELS.some((lv) => !store.levels[lv]) ||
-      parseKeywords(store.kw.text).length > 0
-    );
+    return isLevelFilterActive() || parseKeywords(store.kw.text).length > 0;
   }
 
   // ---- 等级识别: 只在打标时算一次 ----
@@ -164,8 +167,10 @@
   // 关键词: 动态文本匹配,仍走 JS,用 data-ld-kw-hide 标记
   function syncLevelClasses() {
     const body = document.body;
+    const active = isLevelFilterActive();
     for (const lv of LEVELS) {
-      body.classList.toggle(`ldf-hide-${lv}`, !store.levels[lv]);
+      // 全不选时不挂任何 hide class,与全选效果一致
+      body.classList.toggle(`ldf-hide-${lv}`, active && !store.levels[lv]);
     }
   }
 
